@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # Mailpit - SMTP server for local development
+  # Interface: http://localhost:8025
+  # SMTP: localhost:1025
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: email-service-mailpit
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI port
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    networks:
+      - email-network
+    restart: unless-stopped
+
+  # LocalStack - AWS services emulator for local development
+  localstack:
+    image: localstack/localstack:latest
+    container_name: email-service-localstack
+    ports:
+      - "4566:4566"  # LocalStack Gateway
+    environment:
+      - SERVICES=dynamodb,events,sqs,lambda
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+      - LAMBDA_EXECUTOR=docker-reuse
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "./scripts/init-localstack.sh:/etc/localstack/init/ready.d/init-aws.sh"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./tmp/localstack:/tmp/localstack"
+    networks:
+      - email-network
+    restart: unless-stopped
+
+networks:
+  email-network:
+    driver: bridge

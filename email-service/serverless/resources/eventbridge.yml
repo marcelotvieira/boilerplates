@@ -1,0 +1,87 @@
+Resources:
+  # EventBridge Rule for Email Verification Events
+  EmailVerificationRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: email-service-verification-${self:provider.stage}
+      EventBusName: ${self:provider.environment.IDENTITY_EVENT_BUS_NAME}
+      EventPattern:
+        source:
+          - identity-service
+        detail-type:
+          - EmailVerificationRequested
+      Targets:
+        - Arn: !GetAtt ProcessEmailEventLambdaFunction.Arn
+          Id: EmailServiceTarget
+          RetryPolicy:
+            MaximumRetryAttempts: 3
+            MaximumEventAge: 3600
+          DeadLetterConfig:
+            Arn: !GetAtt EmailDLQ.Arn
+
+  # EventBridge Rule for Password Reset Events
+  PasswordResetRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: email-service-password-reset-${self:provider.stage}
+      EventBusName: ${self:provider.environment.IDENTITY_EVENT_BUS_NAME}
+      EventPattern:
+        source:
+          - identity-service
+        detail-type:
+          - PasswordResetRequested
+      Targets:
+        - Arn: !GetAtt ProcessEmailEventLambdaFunction.Arn
+          Id: EmailServiceTarget
+          RetryPolicy:
+            MaximumRetryAttempts: 3
+            MaximumEventAge: 3600
+          DeadLetterConfig:
+            Arn: !GetAtt EmailDLQ.Arn
+
+  # EventBridge Rule for Invite Events
+  InviteRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: email-service-invite-${self:provider.stage}
+      EventBusName: ${self:provider.environment.IDENTITY_EVENT_BUS_NAME}
+      EventPattern:
+        source:
+          - identity-service
+        detail-type:
+          - InviteCreated
+      Targets:
+        - Arn: !GetAtt ProcessEmailEventLambdaFunction.Arn
+          Id: EmailServiceTarget
+          RetryPolicy:
+            MaximumRetryAttempts: 3
+            MaximumEventAge: 3600
+          DeadLetterConfig:
+            Arn: !GetAtt EmailDLQ.Arn
+
+  # Lambda Permission for EmailVerificationRule
+  EmailVerificationRulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt ProcessEmailEventLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EmailVerificationRule.Arn
+
+  # Lambda Permission for PasswordResetRule
+  PasswordResetRulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt ProcessEmailEventLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt PasswordResetRule.Arn
+
+  # Lambda Permission for InviteRule
+  InviteRulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt ProcessEmailEventLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt InviteRule.Arn

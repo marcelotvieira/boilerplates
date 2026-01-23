@@ -1,0 +1,5 @@
+email-service/node_modules
+identity-service/node_modules
+web-app/node_modules
+*/node_modules
+**/node_modules

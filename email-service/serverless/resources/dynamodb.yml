@@ -1,0 +1,39 @@
+Resources:
+  EmailLogsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:provider.environment.DYNAMODB_TABLE_NAME}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+        - AttributeName: sentAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: EmailIndex
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+            - AttributeName: sentAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      Tags:
+        - Key: Service
+          Value: email-service
+        - Key: Stage
+          Value: ${self:provider.stage}

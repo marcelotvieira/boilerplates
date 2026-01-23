@@ -1,0 +1,157 @@
+# Lambda Functions Configuration
+
+# ======================
+# AUTH FUNCTIONS (Public)
+# ======================
+
+register:
+  handler: src/api/handlers/auth/register.handler
+  events:
+    - httpApi:
+        path: /auth/register
+        method: POST
+
+login:
+  handler: src/api/handlers/auth/login.handler
+  events:
+    - httpApi:
+        path: /auth/login
+        method: POST
+
+verifyEmail:
+  handler: src/api/handlers/auth/verify-email.handler
+  events:
+    - httpApi:
+        path: /auth/verify-email
+        method: POST
+
+resendVerificationCode:
+  handler: src/api/handlers/auth/resend-verification-code.handler
+  events:
+    - httpApi:
+        path: /auth/resend-verification-code
+        method: POST
+
+refreshToken:
+  handler: src/api/handlers/auth/refresh-token.handler
+  events:
+    - httpApi:
+        path: /auth/refresh-token
+        method: POST
+
+logout:
+  handler: src/api/handlers/auth/logout.handler
+  events:
+    - httpApi:
+        path: /auth/logout
+        method: POST
+
+requestPasswordReset:
+  handler: src/api/handlers/auth/request-password-reset.handler
+  events:
+    - httpApi:
+        path: /auth/request-password-reset
+        method: POST
+
+resetPassword:
+  handler: src/api/handlers/auth/reset-password.handler
+  events:
+    - httpApi:
+        path: /auth/reset-password
+        method: POST
+
+# ======================
+# USER FUNCTIONS (Authenticated)
+# ======================
+
+getUserProfile:
+  handler: src/api/handlers/users/get-profile.handler
+  events:
+    - httpApi:
+        path: /users/profile
+        method: GET
+
+updateUserProfile:
+  handler: src/api/handlers/users/update-profile.handler
+  events:
+    - httpApi:
+        path: /users/profile
+        method: PATCH
+
+changePassword:
+  handler: src/api/handlers/users/change-password.handler
+  events:
+    - httpApi:
+        path: /users/change-password
+        method: POST
+
+deleteUser:
+  handler: src/api/handlers/users/delete-user.handler
+  events:
+    - httpApi:
+        path: /users/{userId}
+        method: DELETE
+
+# ======================
+# TENANT FUNCTIONS (Authenticated)
+# ======================
+
+getTenant:
+  handler: src/api/handlers/tenants/get-tenant.handler
+  events:
+    - httpApi:
+        path: /tenants/me
+        method: GET
+
+updateTenant:
+  handler: src/api/handlers/tenants/update-tenant.handler
+  events:
+    - httpApi:
+        path: /tenants/me
+        method: PATCH
+
+getTenantMembers:
+  handler: src/api/handlers/tenants/get-tenant-members.handler
+  events:
+    - httpApi:
+        path: /tenants/me/members
+        method: GET
+
+# ======================
+# INVITE FUNCTIONS (Mixed: Public + Authenticated)
+# ======================
+
+createInvite:
+  handler: src/api/handlers/invites/create-invite.handler
+  events:
+    - httpApi:
+        path: /invites
+        method: POST
+
+acceptInvite:
+  handler: src/api/handlers/invites/accept-invite.handler
+  events:
+    - httpApi:
+        path: /invites/accept
+        method: POST
+
+listInvites:
+  handler: src/api/handlers/invites/list-invites.handler
+  events:
+    - httpApi:
+        path: /invites
+        method: GET
+
+cancelInvite:
+  handler: src/api/handlers/invites/cancel-invite.handler
+  events:
+    - httpApi:
+        path: /invites/{token}
+        method: DELETE
+
+resendInvite:
+  handler: src/api/handlers/invites/resend-invite.handler
+  events:
+    - httpApi:
+        path: /invites/{token}/resend
+        method: POST

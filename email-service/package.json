@@ -1,0 +1,50 @@
+{
+  "name": "email-service",
+  "version": "1.0.0",
+  "description": "Generic email service for SaaS applications - Consumes EventBridge events and sends transactional emails",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "deploy:local": "serverless deploy --stage local",
+    "deploy:dev": "serverless deploy --stage dev",
+    "offline": "AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 serverless offline start --stage local",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "localstack:init": "bash scripts/init-localstack.sh",
+    "test:send-event": "bash scripts/test-send-event.sh",
+    "logs": "serverless logs -f processEmailEvent --stage local --tail"
+  },
+  "keywords": [
+    "email",
+    "transactional-email",
+    "serverless",
+    "aws",
+    "lambda",
+    "eventbridge",
+    "sendgrid",
+    "mailpit"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.0",
+    "aws-lambda": "^1.0.7",
+    "dynamoose": "^4.0.1",
+    "handlebars": "^4.7.8",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^20.14.9",
+    "@types/uuid": "^10.0.0",
+    "serverless": "^4.4.7",
+    "serverless-localstack": "^1.2.0",
+    "serverless-offline": "^14.3.3",
+    "serverless-offline-aws-eventbridge": "^2.2.4",
+    "typescript": "^5.5.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

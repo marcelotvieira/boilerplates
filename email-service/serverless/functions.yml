@@ -1,0 +1,41 @@
+# Lambda Functions Configuration
+
+processEmailEvent:
+  handler: src/handlers/process-email-event.handler
+  description: Process email events from EventBridge and send emails
+  memorySize: 512
+  timeout: 30
+  environment:
+    # Inherited from provider.environment
+    NODE_ENV: ${self:provider.environment.NODE_ENV}
+    STAGE: ${self:provider.environment.STAGE}
+    EMAIL_PROVIDER: ${self:provider.environment.EMAIL_PROVIDER}
+    MAILPIT_API_URL: ${self:provider.environment.MAILPIT_API_URL, ''}
+    SENDGRID_API_KEY: ${self:provider.environment.SENDGRID_API_KEY, ''}
+    EMAIL_FROM_ADDRESS: ${self:provider.environment.EMAIL_FROM_ADDRESS}
+    EMAIL_FROM_NAME: ${self:provider.environment.EMAIL_FROM_NAME}
+    DYNAMODB_TABLE_NAME: ${self:provider.environment.DYNAMODB_TABLE_NAME}
+    DYNAMODB_ENDPOINT: ${self:provider.environment.DYNAMODB_ENDPOINT, ''}
+  events:
+    # EventBridge events - permite serverless-offline registrar no LocalStack
+    - eventBridge:
+        eventBus: ${self:provider.environment.IDENTITY_EVENT_BUS_NAME}
+        pattern:
+          source:
+            - identity-service
+          detail-type:
+            - EmailVerificationRequested
+    - eventBridge:
+        eventBus: ${self:provider.environment.IDENTITY_EVENT_BUS_NAME}
+        pattern:
+          source:
+            - identity-service
+          detail-type:
+            - PasswordResetRequested
+    - eventBridge:
+        eventBus: ${self:provider.environment.IDENTITY_EVENT_BUS_NAME}
+        pattern:
+          source:
+            - identity-service
+          detail-type:
+            - InviteCreated

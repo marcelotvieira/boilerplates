@@ -1,0 +1,92 @@
+service: identity-service
+frameworkVersion: "4"
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  stage: ${opt:stage, "dev"}
+  timeout: 30
+  memorySize: 256
+
+  # HTTP API Configuration
+  httpApi:
+    cors:
+      allowedOrigins:
+        - http://localhost:3000
+        - http://localhost:5173
+      allowedHeaders:
+        - Content-Type
+        - Authorization
+      allowedMethods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      allowCredentials: true
+
+  environment: ${file(serverless/environments/${self:provider.stage}.yml)}
+
+  iam:
+    role:
+      statements: ${file(serverless/resources/iam.yml)}
+
+  tags:
+    Service: identity-service
+    Stage: ${self:provider.stage}
+
+plugins:
+  - serverless-localstack
+  - serverless-offline-aws-eventbridge
+  - serverless-offline
+
+functions: ${file(serverless/functions.yml)}
+
+resources:
+  - ${file(serverless/resources/dynamodb.yml)}
+  - ${file(serverless/resources/eventbridge.yml)}
+
+custom:
+  serverless-offline:
+    host: 0.0.0.0
+    httpPort: 3001
+    stage: local
+    region: ${self:provider.region}
+    reloadHandler: true
+    noAuth: true
+
+  serverless-offline-aws-eventbridge:
+    hostname: localhost
+    port: 4010
+    pubSubPort: 4011
+    debug: true
+    account: '000000000000'
+    region: ${self:provider.region}
+    maximumRetryAttempts: 0
+    mockEventBridgeServer: false
+
+  localstack:
+    stages:
+      - local
+    host: http://localhost
+    edgePort: 4566
+    autostart: false
+    skipStsServiceCheck: true
+    endpoints:
+      DynamoDB: http://localhost:4566
+      EventBridge: http://localhost:4566
+      Events: http://localhost:4566
+      IAM: http://localhost:4566
+      Lambda: http://localhost:4566
+      ApiGateway: http://localhost:4566
+
+package:
+  individually: true
+  patterns:
+    - '!node_modules/**'
+    - '!.git/**'
+    - '!.vscode/**'
+    - '!tests/**'
+    - '!*.md'

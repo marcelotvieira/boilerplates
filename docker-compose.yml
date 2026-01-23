@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # LocalStack - AWS Local Emulation
+  # ==========================================
+  # Shared infrastructure for all services
+  # - identity-service: DynamoDB, EventBridge
+  # - email-service: DynamoDB, EventBridge, SQS
+  localstack:
+    image: localstack/localstack:latest
+    container_name: boilerplates-localstack
+    ports:
+      - "4566:4566"  # Gateway port
+      - "4571:4571"  # Elasticsearch (optional)
+    environment:
+      # Services to emulate
+      - SERVICES=dynamodb,events,sqs,lambda,ssm,iam,sts
+
+      # Configuration
+      - DEBUG=0
+      - DATA_DIR=/var/lib/localstack
+      - LAMBDA_EXECUTOR=docker
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - PERSISTENCE=1  # Enable persistence
+
+      # AWS Configuration
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+    volumes:
+      - "localstack-data:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - boilerplates-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ==========================================
+  # Mailpit - Email Testing (Email Service)
+  # ==========================================
+  # SMTP server with web UI for local email testing
+  # Web UI: http://localhost:8025
+  # SMTP: localhost:1025
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: boilerplates-mailpit
+    ports:
+      - "8025:8025"  # Web UI
+      - "1025:1025"  # SMTP server
+    environment:
+      - MP_MAX_MESSAGES=500
+      - MP_SMTP_AUTH_ACCEPT_ANY=1
+      - MP_SMTP_AUTH_ALLOW_INSECURE=1
+    networks:
+      - boilerplates-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8025/api/v1/info"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  boilerplates-network:
+    name: boilerplates-network
+    driver: bridge
+
+volumes:
+  localstack-data:
+    name: boilerplates-localstack-data

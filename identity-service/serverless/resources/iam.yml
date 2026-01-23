@@ -1,0 +1,27 @@
+- Effect: Allow
+  Action:
+    - dynamodb:GetItem
+    - dynamodb:PutItem
+    - dynamodb:UpdateItem
+    - dynamodb:DeleteItem
+    - dynamodb:Query
+    - dynamodb:Scan
+    - dynamodb:BatchGetItem
+    - dynamodb:BatchWriteItem
+  Resource:
+    - !GetAtt IdentityServiceTable.Arn
+    - !Sub "${IdentityServiceTable.Arn}/index/*"
+
+- Effect: Allow
+  Action:
+    - events:PutEvents
+  Resource:
+    - !GetAtt IdentityEventBus.Arn
+
+- Effect: Allow
+  Action:
+    - logs:CreateLogGroup
+    - logs:CreateLogStream
+    - logs:PutLogEvents
+  Resource:
+    - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*"

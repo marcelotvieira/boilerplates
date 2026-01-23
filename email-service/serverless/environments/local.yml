@@ -1,0 +1,26 @@
+NODE_ENV: local
+STAGE: local
+AWS_REGION: us-east-1
+
+# Email Provider Configuration
+EMAIL_PROVIDER: mailpit
+MAILPIT_API_URL: http://localhost:8025/api/v1/send
+
+# Sender Information
+EMAIL_FROM_ADDRESS: noreply@localhost
+EMAIL_FROM_NAME: App Local
+
+# DynamoDB
+DYNAMODB_TABLE_NAME: email-logs-local
+DYNAMODB_ENDPOINT: http://localhost:4566
+
+# EventBridge
+IDENTITY_EVENT_BUS_NAME: identity-service-local
+EVENTBRIDGE_ENDPOINT: http://localhost:4566
+
+# Flags
+IS_OFFLINE: "true"
+
+# AWS Credentials for LocalStack
+AWS_ACCESS_KEY_ID: test
+AWS_SECRET_ACCESS_KEY: test

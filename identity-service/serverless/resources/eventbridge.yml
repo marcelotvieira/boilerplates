@@ -1,0 +1,23 @@
+Resources:
+  IdentityEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: ${self:provider.environment.IDENTITY_EVENT_BUS_NAME}
+      Tags:
+        - Key: Service
+          Value: identity-service
+        - Key: Stage
+          Value: ${self:provider.stage}
+
+Outputs:
+  IdentityEventBusArn:
+    Description: ARN of the Identity Service Event Bus
+    Value: !GetAtt IdentityEventBus.Arn
+    Export:
+      Name: ${self:provider.stage}-IdentityEventBusArn
+
+  IdentityEventBusName:
+    Description: Name of the Identity Service Event Bus
+    Value: !Ref IdentityEventBus
+    Export:
+      Name: ${self:provider.stage}-IdentityEventBusName

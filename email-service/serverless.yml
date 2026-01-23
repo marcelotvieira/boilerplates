@@ -1,0 +1,94 @@
+service: email-service
+frameworkVersion: "4"
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  stage: ${opt:stage, "dev"}
+  timeout: 30
+  memorySize: 256
+
+  environment: ${file(serverless/environments/${self:provider.stage}.yml)}
+
+  iam:
+    role:
+      statements:
+        # DynamoDB permissions
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:Query
+            - dynamodb:UpdateItem
+          Resource:
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_NAME}"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE_NAME}/index/*"
+
+        # SQS permissions (DLQ)
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+          Resource:
+            - "arn:aws:sqs:${self:provider.region}:*:email-service-dlq-${self:provider.stage}"
+
+  tags:
+    Service: email-service
+    Stage: ${self:provider.stage}
+
+plugins:
+  - serverless-localstack
+  - serverless-offline-aws-eventbridge
+  - serverless-offline
+
+functions: ${file(serverless/functions.yml)}
+
+resources:
+  - ${file(serverless/resources/dynamodb.yml)}
+  - ${file(serverless/resources/eventbridge.yml)}
+  - ${file(serverless/resources/sqs.yml)}
+
+custom:
+  serverless-offline:
+    host: 0.0.0.0
+    httpPort: 3002
+    lambdaPort: 3003
+    stage: local
+    region: ${self:provider.region}
+    reloadHandler: true
+    noAuth: true
+
+  serverless-offline-aws-eventbridge:
+    hostname: localhost
+    port: 4010
+    pubSubPort: 4011
+    debug: true
+    account: '000000000000'
+    region: ${self:provider.region}
+    maximumRetryAttempts: 0
+    mockEventBridgeServer: true
+
+  localstack:
+    stages:
+      - local
+    host: http://localhost
+    edgePort: 4566
+    autostart: false
+    skipStsServiceCheck: true
+    endpoints:
+      DynamoDB: http://localhost:4566
+      EventBridge: http://localhost:4566
+      Events: http://localhost:4566
+      SQS: http://localhost:4566
+      Lambda: http://localhost:4566
+
+package:
+  individually: true
+  patterns:
+    - '!node_modules/**'
+    - '!.git/**'
+    - '!.vscode/**'
+    - '!tests/**'
+    - '!*.md'

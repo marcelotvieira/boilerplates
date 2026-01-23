@@ -1,0 +1,20 @@
+NODE_ENV: development
+STAGE: dev
+AWS_REGION: us-east-1
+
+# Email Provider Configuration
+EMAIL_PROVIDER: sendgrid
+SENDGRID_API_KEY: ${ssm:/email-service/dev/sendgrid-api-key}
+
+# Sender Information
+EMAIL_FROM_ADDRESS: noreply@yourdomain.com
+EMAIL_FROM_NAME: Your App Name
+
+# DynamoDB
+DYNAMODB_TABLE_NAME: email-logs-dev
+
+# EventBridge
+IDENTITY_EVENT_BUS_NAME: identity-service-dev
+
+# Flags
+IS_OFFLINE: "false"
