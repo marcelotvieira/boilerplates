@@ -1,5 +1,5 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { VerifyEmailForm } from '../components/verify-email-form'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { VerifyEmailForm } from "../components/verify-email-form";
 
 interface VerifyEmailScreenProps {
   email: string
@@ -20,5 +20,5 @@ export function VerifyEmailScreen({ email }: VerifyEmailScreenProps) {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

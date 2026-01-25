@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api-client'
+import { apiClient } from "@/lib/api-client";
 import type {
   RegisterInput,
   RegisterResponse,
@@ -12,24 +12,24 @@ import type {
   ForgotPasswordResponse,
   ResetPasswordInput,
   ResetPasswordResponse,
-} from '../types/auth.types'
+} from "../types/auth.types";
 
 export const authApi = {
   register: (data: RegisterInput) =>
-    apiClient.post<RegisterResponse>('/auth/register', data),
+    apiClient.post<RegisterResponse>("/auth/register", data),
 
   verifyEmail: (data: VerifyEmailInput) =>
-    apiClient.post<VerifyEmailResponse>('/auth/verify-email', data),
+    apiClient.post<VerifyEmailResponse>("/auth/verify-email", data),
 
   resendVerificationCode: (data: ResendVerificationInput) =>
-    apiClient.post<ResendVerificationResponse>('/auth/resend-verification-code', data),
+    apiClient.post<ResendVerificationResponse>("/auth/resend-verification-code", data),
 
   login: (data: LoginInput) =>
-    apiClient.post<LoginResponse>('/auth/login', data),
+    apiClient.post<LoginResponse>("/auth/login", data),
 
   forgotPassword: (data: ForgotPasswordInput) =>
-    apiClient.post<ForgotPasswordResponse>('/auth/request-password-reset', data),
+    apiClient.post<ForgotPasswordResponse>("/auth/request-password-reset", data),
 
   resetPassword: (data: ResetPasswordInput) =>
-    apiClient.post<ResetPasswordResponse>('/auth/reset-password', data),
-}
+    apiClient.post<ResetPasswordResponse>("/auth/reset-password", data),
+};

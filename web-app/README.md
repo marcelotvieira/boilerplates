@@ -10,6 +10,7 @@ Next.js 15 application with App Router, shadcn/ui, and TypeScript. Part of the m
 - **Tailwind CSS 4** - Utility-first styling
 - **shadcn/ui** - High-quality component library (New York style)
 - **React Hook Form** - Form handling with Zod validation
+- **next-themes** - Dark mode support
 - **Turbopack** - Fast bundler for dev and build
 
 ## Project Structure
@@ -17,52 +18,50 @@ Next.js 15 application with App Router, shadcn/ui, and TypeScript. Part of the m
 ```
 web-app/
 ├── app/
-│   ├── (pages)/              # Route groups (doesn't affect URLs)
-│   │   ├── auth/             # Authentication pages (/login, /register)
-│   │   │   ├── login/
-│   │   │   │   ├── page.tsx  # Route - renders screen
-│   │   │   │   └── actions.ts # Server Actions
-│   │   │   └── register/
-│   │   │       ├── page.tsx
-│   │   │       └── actions.ts
-│   │   └── panel/            # Authenticated pages
-│   │       └── settings/
+│   ├── (pages)/              # Route group for public/auth pages
+│   │   └── auth/             # Authentication pages (/login, /register)
+│   │       ├── layout.tsx    # Blocks authenticated users
+│   │       ├── login/
+│   │       │   ├── page.tsx
+│   │       │   └── actions.ts
+│   │       └── register/
+│   │           ├── page.tsx
+│   │           └── actions.ts
+│   │
+│   ├── (protected)/          # Route group for authenticated pages
+│   │   ├── layout.tsx        # Requires auth + header with logout
+│   │   └── panel/
+│   │       └── page.tsx
+│   │
+│   ├── api/auth/             # API routes
+│   │   └── refresh/route.ts  # Token refresh endpoint
 │   │
 │   ├── features/             # Feature modules (business logic)
 │   │   └── auth/
 │   │       ├── api/          # HTTP clients (calls backend)
-│   │       │   └── auth.client.ts
 │   │       ├── components/   # Feature-specific components
-│   │       │   ├── register-form.tsx
-│   │       │   └── login-form.tsx
 │   │       ├── schemas/      # Zod validation schemas
-│   │       │   ├── register.schema.ts
-│   │       │   └── login.schema.ts
 │   │       ├── screens/      # Complete screen compositions
-│   │       │   ├── register-screen.tsx
-│   │       │   └── login-screen.tsx
 │   │       ├── services/     # Business logic layer
-│   │       │   ├── register.service.ts
-│   │       │   └── login.service.ts
 │   │       └── types/        # TypeScript types
-│   │           └── auth.types.ts
 │   │
-│   ├── layout.tsx            # Root layout
+│   ├── layout.tsx            # Root layout (ThemeProvider)
 │   ├── page.tsx              # Home page
 │   └── globals.css           # Global styles + CSS variables
 │
 ├── components/
-│   └── ui/                   # shadcn/ui components only
-│       ├── button.tsx
-│       ├── input.tsx
-│       ├── form.tsx
-│       └── ...
+│   ├── ui/                   # shadcn/ui components only
+│   ├── theme-provider.tsx    # next-themes wrapper
+│   └── mode-toggle.tsx       # Dark mode toggle button
 │
 ├── lib/
-│   ├── api-client.ts         # Base HTTP client wrapper
+│   ├── api-client.ts         # HTTP client with auto token injection
+│   ├── auth/
+│   │   ├── session.ts        # Session utilities (getSession, etc)
+│   │   └── actions.ts        # Auth actions (logout)
 │   └── utils.ts              # Utilities (cn(), etc)
 │
-└── middleware.ts             # Next.js middleware (auth checks)
+└── middleware.ts             # Route protection (auth checks)
 ```
 
 ## Architecture Patterns
@@ -78,21 +77,124 @@ Each feature is self-contained in `app/features/{feature}/`:
 - **services/** - Business logic layer (used by Server Actions)
 - **types/** - TypeScript interfaces and types
 
-### Data Flow
+### Data Flow (Component → API)
 
 ```
-User Form Input
-    ↓
-Client Component (React Hook Form + Zod validation)
-    ↓
-Server Action (app/(pages)/feature/page/actions.ts)
-    ↓
-Service Layer (app/features/feature/services/)
-    ↓
-API Client (app/features/feature/api/)
-    ↓
-Backend Service (identity-service, etc)
+┌─────────────────────────────────────────────────────────────────┐
+│  PAGE (Server Component)                                        │
+│  app/(pages)/auth/login/page.tsx                                │
+└─────────────────────┬───────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  SCREEN (Client Component - UI composition)                     │
+│  app/features/auth/screens/login-screen.tsx                     │
+└─────────────────────┬───────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  FORM (Client Component - form logic + UI)                      │
+│  app/features/auth/components/login-form.tsx                    │
+│  - useActionState para Server Action                            │
+└─────────────────────┬───────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  ACTION (Server Action - validação + orquestração)              │
+│  app/(pages)/auth/login/actions.ts                              │
+│  - Valida com Zod (schema)                                      │
+│  - Chama service                                                │
+│  - Gerencia cookies                                             │
+└─────────────────────┬───────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  SERVICE (Lógica de negócio + tratamento de erros)              │
+│  app/features/auth/services/login.service.ts                    │
+│  - Chama API client                                             │
+│  - Transforma erros em mensagens amigáveis                      │
+└─────────────────────┬───────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  API CLIENT (Feature-specific - tipagem forte)                  │
+│  app/features/auth/api/auth.client.ts                           │
+│  - Métodos tipados: authApi.login(), authApi.register()         │
+└─────────────────────┬───────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  API CLIENT (Global - HTTP + auth handling)                     │
+│  lib/api-client.ts                                              │
+│  - Injeta Authorization header automaticamente                  │
+│  - Logout em 401                                                │
+│  - Tratamento de erros de rede                                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Authentication System
+
+### Token Refresh Flow
+
+```
+Usuário acessa rota protegida (/panel)
+        ↓
+   middleware.ts
+        ↓
+┌─ accessToken existe? ─────────────────────────┐
+│   SIM → permite acesso                        │
+│   NÃO → refreshToken existe?                  │
+│         SIM → redireciona para /api/auth/refresh
+│         NÃO → redireciona para /auth/login    │
+└───────────────────────────────────────────────┘
+```
+
+**Quando ocorre o refresh:**
+- Quando o `accessToken` expira e o usuário tenta acessar uma rota protegida
+- O middleware detecta a ausência do `accessToken` mas presença do `refreshToken`
+- Redireciona para `/api/auth/refresh?redirect=/panel`
+- A API route chama o backend, obtém novos tokens, seta cookies e redireciona de volta
+
+### Session Management
+
+| Método | Onde usar | Retorno |
+|--------|-----------|---------|
+| `getSession()` | Server Components, Server Actions, API Routes | `{ user, tenant }` ou `null` |
+| `getAccessToken()` | Server-side quando precisa só do token | `string` ou `null` |
+| `isAuthenticated()` | Server-side para check booleano | `boolean` |
+| Cookie `sessionData` | Client Components (via `document.cookie`) | JSON string com `{ user, tenant }` |
+
+**Arquivo:** `lib/auth/session.ts`
+
+### Cookie Structure
+
+| Cookie | httpOnly | Conteúdo |
+|--------|----------|----------|
+| `accessToken` | ✅ Sim | JWT token para API |
+| `refreshToken` | ✅ Sim | Token para refresh |
+| `sessionData` | ❌ Não | JSON com user + tenant (para display) |
+
+### API Client Auto-Token
+
+O `lib/api-client.ts` injeta automaticamente o token baseado no endpoint:
+
+```typescript
+// Endpoints públicos (não requerem token)
+const PUBLIC_ENDPOINTS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/verify-email',
+  // ...
+]
+
+// Qualquer outro endpoint → adiciona Authorization header
+// 401 de qualquer rota → logout automático
+```
+
+### Route Groups
+
+| Route Group | Comportamento |
+|-------------|---------------|
+| `(pages)/auth/*` | Bloqueia usuários autenticados → redireciona para `/panel` |
+| `(protected)/*` | Requer autenticação → redireciona para `/auth/login` |
+
+---
 
 ### Server Actions Pattern
 
@@ -187,13 +289,43 @@ This frontend connects to:
 
 Backend services should be running for full functionality.
 
-## Styling
+## Styling & Theming
 
 - **Tailwind CSS 4** with CSS variables
 - **shadcn/ui New York** style preset
 - **Zinc** base color palette
-- **Dark mode** support via CSS variables
 - **Lucide React** for icons
+
+### Dark Mode
+
+Implementado com `next-themes`:
+
+```typescript
+// components/theme-provider.tsx - Provider wrapper
+// components/mode-toggle.tsx - Toggle button (dropdown)
+```
+
+**Configuração no layout raiz:**
+```tsx
+<ThemeProvider
+  attribute="class"
+  defaultTheme="system"
+  enableSystem
+  disableTransitionOnChange
+>
+  {children}
+</ThemeProvider>
+```
+
+**Uso em componentes:**
+```tsx
+import { useTheme } from 'next-themes'
+
+const { theme, setTheme } = useTheme()
+setTheme('dark') // 'light' | 'dark' | 'system'
+```
+
+**CSS Variables:** Definidas em `globals.css` para `:root` (light) e `.dark` (dark)
 
 ## Key Decisions
 

@@ -37,7 +37,7 @@ export interface RegisterResponse {
     fullName: string
     tenantId: string
     tenantName: string
-    role: 'OWNER'
+    role: "OWNER"
     emailVerified: boolean
   }
   message: string
@@ -116,4 +116,4 @@ export interface ApiError {
 // Service result types
 export type ServiceResult<T> =
   | { ok: true; data: T }
-  | { ok: false; error: string; statusCode?: number }
+  | { ok: false; error: string; statusCode?: number };

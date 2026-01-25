@@ -1,11 +1,12 @@
-import { LoginScreen } from '@/app/features/auth/screens/login-screen'
+import { LoginScreen } from "@/app/features/auth/screens/login-screen";
 
 interface LoginPageProps {
-  searchParams: {
+  searchParams: Promise<{
     reset?: string
-  }
+  }>
 }
 
-export default function LoginPage({ searchParams }: LoginPageProps) {
-  return <LoginScreen showResetSuccess={searchParams.reset === 'success'} />
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  return <LoginScreen showResetSuccess={params.reset === "success"} />;
 }

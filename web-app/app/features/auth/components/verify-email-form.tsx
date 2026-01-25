@@ -1,20 +1,22 @@
-'use client'
+"use client";
 
-import { useState, useActionState } from 'react'
-import { useFormStatus } from 'react-dom'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { verifyEmailAction, resendCodeAction } from '@/app/(pages)/auth/verify-email/actions'
+import { useState, useActionState } from "react";
+import { useFormStatus } from "react-dom";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { verifyEmailAction, resendCodeAction } from "@/app/(pages)/auth/verify-email/actions";
+import { useFormToast } from "@/hooks/use-form-toast";
 
 function SubmitButton() {
-  const { pending } = useFormStatus()
+  const { pending } = useFormStatus();
 
   return (
     <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? 'Verificando...' : 'Verificar email'}
+      {pending ? "Verificando..." : "Verificar email"}
     </Button>
-  )
+  );
 }
 
 interface VerifyEmailFormProps {
@@ -22,21 +24,21 @@ interface VerifyEmailFormProps {
 }
 
 export function VerifyEmailForm({ email }: VerifyEmailFormProps) {
-  const [state, formAction] = useActionState(verifyEmailAction, null)
-  const [resendState, setResendState] = useState<{ loading: boolean; message?: string; error?: string }>({
-    loading: false,
-  })
+  const [state, formAction] = useActionState(verifyEmailAction, null);
+  const [resendLoading, setResendLoading] = useState(false);
+  useFormToast(state);
 
   const handleResend = async () => {
-    setResendState({ loading: true })
-    const result = await resendCodeAction(email)
+    setResendLoading(true);
+    const result = await resendCodeAction(email);
+    setResendLoading(false);
 
     if (result.error) {
-      setResendState({ loading: false, error: result.error })
+      toast.error(result.error);
     } else {
-      setResendState({ loading: false, message: result.message })
+      toast.success(result.message);
     }
-  }
+  };
 
   return (
     <div className="space-y-4">
@@ -65,13 +67,6 @@ export function VerifyEmailForm({ email }: VerifyEmailFormProps) {
           </p>
         </div>
 
-        {/* Erro geral */}
-        {state?.error && (
-          <div className="rounded-md bg-red-50 p-3">
-            <p className="text-sm text-red-800">{state.error}</p>
-          </div>
-        )}
-
         <SubmitButton />
       </form>
 
@@ -81,19 +76,11 @@ export function VerifyEmailForm({ email }: VerifyEmailFormProps) {
           type="button"
           variant="link"
           onClick={handleResend}
-          disabled={resendState.loading}
+          disabled={resendLoading}
         >
-          {resendState.loading ? 'Reenviando...' : 'Não recebeu o código? Reenviar'}
+          {resendLoading ? "Reenviando..." : "Não recebeu o código? Reenviar"}
         </Button>
-
-        {resendState.message && (
-          <p className="text-sm text-green-600 mt-2">{resendState.message}</p>
-        )}
-
-        {resendState.error && (
-          <p className="text-sm text-red-600 mt-2">{resendState.error}</p>
-        )}
       </div>
     </div>
-  )
+  );
 }

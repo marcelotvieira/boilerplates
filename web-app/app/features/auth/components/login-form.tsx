@@ -1,24 +1,26 @@
-'use client'
+"use client";
 
-import { useActionState } from 'react'
-import { useFormStatus } from 'react-dom'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { loginAction } from '@/app/(pages)/auth/login/actions'
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { loginAction } from "@/app/(pages)/auth/login/actions";
+import { useFormToast } from "@/hooks/use-form-toast";
 
 function SubmitButton() {
-  const { pending } = useFormStatus()
+  const { pending } = useFormStatus();
 
   return (
     <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? 'Entrando...' : 'Entrar'}
+      {pending ? "Entrando..." : "Entrar"}
     </Button>
-  )
+  );
 }
 
 export function LoginForm() {
-  const [state, formAction] = useActionState(loginAction, null)
+  const [state, formAction] = useActionState(loginAction, null);
+  useFormToast(state);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -52,14 +54,7 @@ export function LoginForm() {
         )}
       </div>
 
-      {/* Erro geral */}
-      {state?.error && (
-        <div className="rounded-md bg-red-50 p-3">
-          <p className="text-sm text-red-800">{state.error}</p>
-        </div>
-      )}
-
       <SubmitButton />
     </form>
-  )
+  );
 }
