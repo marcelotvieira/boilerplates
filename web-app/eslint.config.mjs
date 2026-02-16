@@ -8,7 +8,7 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: [".next/**", "node_modules/**"],
+    ignores: [".next/**", "node_modules/**", "components/ui/**"],
   },
   {
     files: ["**/*.{ts,tsx,js,jsx}"],
@@ -32,8 +32,7 @@ export default tseslint.config(
     rules: {
       // Stylistic rules (formatting)
       "@stylistic/indent": ["error", 2],
-      "@stylistic/quotes": ["error", "double"],
-      "@stylistic/semi": ["error", "always"],
+      "@stylistic/quotes": ["error", "single"],
       "@stylistic/comma-dangle": ["error", "always-multiline"],
       "@stylistic/object-curly-spacing": ["error", "always"],
       "@stylistic/array-bracket-spacing": ["error", "never"],

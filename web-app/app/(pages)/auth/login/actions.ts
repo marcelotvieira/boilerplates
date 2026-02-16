@@ -1,18 +1,18 @@
-"use server";
+'use server';
 
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
-import { loginSchema } from "@/app/features/auth/schemas/login.schema";
-import { loginService } from "@/app/features/auth/services/login.service";
+import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { loginSchema } from '@/app/features/auth/schemas/login.schema';
+import { publicFetch } from '@/lib/fetch-utils';
+import type { LoginResponse } from '@/app/features/auth/types/auth.types';
 
 export async function loginAction(prevState: unknown, formData: FormData) {
-  // 1. Extrair dados do FormData
+  // 1. Extract and validate
   const rawData = {
-    email: formData.get("email"),
-    password: formData.get("password"),
+    email: formData.get('email'),
+    password: formData.get('password'),
   };
 
-  // 2. Validar com Zod
   const parsed = loginSchema.safeParse(rawData);
 
   if (!parsed.success) {
@@ -21,45 +21,65 @@ export async function loginAction(prevState: unknown, formData: FormData) {
     };
   }
 
-  // 3. Chamar service
-  const result = await loginService(parsed.data);
+  // 2. Direct API call
+  try {
+    const result = await publicFetch<LoginResponse>(
+      '/auth/login',
+      {
+        method: 'POST',
+        body: JSON.stringify(parsed.data),
+      },
+    );
 
-  // 4. Tratar resultado
-  if (!result.ok) {
+    // 3. Set cookies
+    const cookieStore = await cookies();
+
+    cookieStore.set('accessToken', result.data.tokens.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: result.data.tokens.expiresIn,
+      path: '/',
+    });
+
+    cookieStore.set('refreshToken', result.data.tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
+
+    // Store session data (user + tenant + entitlements)
+    const { user, tenant, entitlements } = result.data;
+    cookieStore.set('sessionData', JSON.stringify({ user, tenant, entitlements }), {
+      httpOnly: false, // Can be read by client for display
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: result.data.tokens.expiresIn,
+      path: '/',
+    });
+
+    // 4. Redirect to panel
+    redirect('/panel');
+  } catch (error: any) {
+    // Error handling inline
+    if (error.statusCode === 403) {
+      return {
+        error: 'Email não verificado. Por favor, verifique seu email antes de fazer login.',
+      };
+    }
+
+    if (error.statusCode === 401) {
+      return { error: 'Email ou senha incorretos' };
+    }
+
+    if (error.statusCode === 400 && error.details?.[0]) {
+      return { error: error.details[0].message };
+    }
+
     return {
-      error: result.error,
+      error: error.message || 'Erro ao realizar login',
     };
   }
-
-  // 5. Armazenar tokens em cookies (httpOnly, secure)
-  const cookieStore = await cookies();
-
-  cookieStore.set("accessToken", result.data.data.tokens.accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: result.data.data.tokens.expiresIn,
-    path: "/",
-  });
-
-  cookieStore.set("refreshToken", result.data.data.tokens.refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // 7 dias
-    path: "/",
-  });
-
-  // Armazenar dados da sessão (user + tenant) para exibição
-  const { user, tenant } = result.data.data;
-  cookieStore.set("sessionData", JSON.stringify({ user, tenant }), {
-    httpOnly: false, // Pode ser lido pelo client para display
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: result.data.data.tokens.expiresIn,
-    path: "/",
-  });
-
-  // 6. Redirecionar para painel
-  redirect("/panel");
 }

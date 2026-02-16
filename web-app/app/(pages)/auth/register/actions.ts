@@ -1,19 +1,19 @@
-"use server";
+'use server';
 
-import { redirect } from "next/navigation";
-import { registerSchema } from "@/app/features/auth/schemas/register.schema";
-import { registerService } from "@/app/features/auth/services/register.service";
+import { redirect } from 'next/navigation';
+import { registerSchema } from '@/app/features/auth/schemas/register.schema';
+import { publicFetch } from '@/lib/fetch-utils';
+import type { RegisterResponse } from '@/app/features/auth/types/auth.types';
 
 export async function registerAction(prevState: unknown, formData: FormData) {
-  // 1. Extrair dados do FormData
+  // 1. Extract and validate
   const rawData = {
-    fullName: formData.get("fullName"),
-    email: formData.get("email"),
-    password: formData.get("password"),
-    confirmPassword: formData.get("confirmPassword"),
+    fullName: formData.get('fullName'),
+    email: formData.get('email'),
+    password: formData.get('password'),
+    confirmPassword: formData.get('confirmPassword'),
   };
 
-  // 2. Validar com Zod
   const parsed = registerSchema.safeParse(rawData);
 
   if (!parsed.success) {
@@ -22,17 +22,29 @@ export async function registerAction(prevState: unknown, formData: FormData) {
     };
   }
 
-  // 3. Chamar service (sem confirmPassword)
+  // Remove confirmPassword before sending to API
   const { confirmPassword, ...registerData } = parsed.data;
-  const result = await registerService(registerData);
 
-  // 4. Tratar resultado
-  if (!result.ok) {
-    return {
-      error: result.error,
-    };
+  // 2. Direct API call
+  try {
+    await publicFetch<RegisterResponse>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(registerData),
+    });
+
+  } catch (error: any) {
+    // Error handling inline
+    if (error.statusCode === 409) {
+      return { error: 'Este email já está cadastrado' };
+    }
+
+    if (error.statusCode === 400 && error.details?.[0]) {
+      return { error: error.details[0].message };
+    }
+
+    return { error: error.message || 'Erro ao realizar cadastro' };
   }
 
-  // 5. Redirecionar para verificação (passa email via query param)
+  // 3. Redirect to email verification
   redirect(`/auth/verify-email?email=${encodeURIComponent(registerData.email)}`);
 }

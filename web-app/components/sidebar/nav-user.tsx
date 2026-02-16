@@ -1,17 +1,15 @@
-"use client";
+'use client';
 
+import Link from 'next/link';
 import {
   BadgeCheck,
-  Bell,
   ChevronsUpDown,
-  CreditCard,
   LogOut,
-  Sparkles,
   User,
   Users,
-} from "lucide-react";
+} from 'lucide-react';
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,14 +18,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar";
-import { logoutAction } from "@/lib/auth/actions";
+} from '@/components/ui/sidebar';
+import { logoutAction } from '@/lib/auth/actions';
 
 export function NavUser({
   user,
@@ -41,9 +39,9 @@ export function NavUser({
   const { isMobile } = useSidebar();
 
   const initials = user.name
-    .split(" ")
+    .split(' ')
     .map((n) => n[0])
-    .join("")
+    .join('')
     .toUpperCase()
     .slice(0, 2);
 
@@ -69,7 +67,7 @@ export function NavUser({
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? 'bottom' : 'right'}
             align="end"
             sideOffset={4}
           >
@@ -87,24 +85,23 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade para Pro
+              <DropdownMenuItem asChild>
+                <Link href="/settings/profile">
+                  <User />
+                  Perfil
+                </Link>
               </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Conta
+              <DropdownMenuItem asChild>
+                <Link href="/settings/account/security">
+                  <BadgeCheck />
+                  Conta
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <User />
-                Perfil
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Users />
-                Organização
+              <DropdownMenuItem asChild>
+                <Link href="/settings/organization">
+                  <Users />
+                  Organização
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

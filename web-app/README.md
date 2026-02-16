@@ -105,19 +105,6 @@ Each feature is self-contained in `app/features/{feature}/`:
 └─────────────────────┬───────────────────────────────────────────┘
                       ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│  SERVICE (Lógica de negócio + tratamento de erros)              │
-│  app/features/auth/services/login.service.ts                    │
-│  - Chama API client                                             │
-│  - Transforma erros em mensagens amigáveis                      │
-└─────────────────────┬───────────────────────────────────────────┘
-                      ↓
-┌─────────────────────────────────────────────────────────────────┐
-│  API CLIENT (Feature-specific - tipagem forte)                  │
-│  app/features/auth/api/auth.client.ts                           │
-│  - Métodos tipados: authApi.login(), authApi.register()         │
-└─────────────────────┬───────────────────────────────────────────┘
-                      ↓
-┌─────────────────────────────────────────────────────────────────┐
 │  API CLIENT (Global - HTTP + auth handling)                     │
 │  lib/api-client.ts                                              │
 │  - Injeta Authorization header automaticamente                  │
@@ -150,6 +137,10 @@ Usuário acessa rota protegida (/panel)
 - O middleware detecta a ausência do `accessToken` mas presença do `refreshToken`
 - Redireciona para `/api/auth/refresh?redirect=/panel`
 - A API route chama o backend, obtém novos tokens, seta cookies e redireciona de volta
+
+**IMPORTANTE** 
+- Vamos optar por componentes de servidor sempre que possível assim como prega a documentação do next, baseando o estado no searchParams, em conjunto com o uso inteligente do caching pode evitar muito o uso do client side. O uso para formulários e alguns outros casos necessários ainda é normalmente aceito, formulários por exemplo usamos o react hook form que permite uma experiencia muito confortável para o usuário, é um pattern nosso. O uso do kit shadcn (next ready) também nos trás muitas vantagens e opções para qu estados sejam menos necessários.
+
 
 ### Session Management
 
@@ -233,6 +224,9 @@ export default function RegisterPage() {
   return <RegisterScreen />
 }
 ```
+
+
+
 
 ## Getting Started
 

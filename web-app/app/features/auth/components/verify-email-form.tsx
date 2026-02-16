@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import { useState, useActionState } from "react";
-import { useFormStatus } from "react-dom";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { verifyEmailAction, resendCodeAction } from "@/app/(pages)/auth/verify-email/actions";
-import { useFormToast } from "@/hooks/use-form-toast";
+import { useState, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { verifyEmailAction, resendCodeAction } from '@/app/(pages)/auth/verify-email/actions';
+import { useFormToast } from '@/hooks/use-form-toast';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
 
   return (
     <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? "Verificando..." : "Verificar email"}
+      {pending ? 'Verificando...' : 'Verificar email'}
     </Button>
   );
 }
@@ -78,7 +78,7 @@ export function VerifyEmailForm({ email }: VerifyEmailFormProps) {
           onClick={handleResend}
           disabled={resendLoading}
         >
-          {resendLoading ? "Reenviando..." : "Não recebeu o código? Reenviar"}
+          {resendLoading ? 'Reenviando...' : 'Não recebeu o código? Reenviar'}
         </Button>
       </div>
     </div>

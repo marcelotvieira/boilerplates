@@ -37,7 +37,7 @@ export interface RegisterResponse {
     fullName: string
     tenantId: string
     tenantName: string
-    role: "OWNER"
+    role: 'OWNER'
     emailVerified: boolean
   }
   message: string
@@ -60,6 +60,12 @@ export interface ResendVerificationResponse {
   message: string
 }
 
+export interface Entitlements {
+  [module: string]: {
+    limits?: Record<string, number>
+  }
+}
+
 export interface LoginResponse {
   data: {
     user: {
@@ -73,12 +79,14 @@ export interface LoginResponse {
       id: string
       name: string
       status: string
+      planSlug: string
     }
     tokens: {
       accessToken: string
       refreshToken: string
       expiresIn: number
     }
+    entitlements?: Entitlements
   }
   message: string
 }

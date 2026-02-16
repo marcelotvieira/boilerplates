@@ -1,17 +1,17 @@
-"use server";
+'use server';
 
-import { redirect } from "next/navigation";
-import { verifyEmailSchema } from "@/app/features/auth/schemas/verify-email.schema";
-import { verifyEmailService, resendVerificationService } from "@/app/features/auth/services/verify-email.service";
+import { redirect } from 'next/navigation';
+import { verifyEmailSchema } from '@/app/features/auth/schemas/verify-email.schema';
+import { publicFetch } from '@/lib/fetch-utils';
+import type { VerifyEmailResponse, ResendVerificationResponse } from '@/app/features/auth/types/auth.types';
 
 export async function verifyEmailAction(prevState: unknown, formData: FormData) {
-  // 1. Extrair dados
+  // 1. Extract and validate
   const rawData = {
-    email: formData.get("email"),
-    code: formData.get("code"),
+    email: formData.get('email'),
+    code: formData.get('code'),
   };
 
-  // 2. Validar
   const parsed = verifyEmailSchema.safeParse(rawData);
 
   if (!parsed.success) {
@@ -20,31 +20,44 @@ export async function verifyEmailAction(prevState: unknown, formData: FormData) 
     };
   }
 
-  // 3. Chamar service
-  const result = await verifyEmailService(parsed.data);
+  // 2. Direct API call
+  try {
+    await publicFetch<VerifyEmailResponse>('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify(parsed.data),
+    });
 
-  // 4. Tratar resultado
-  if (!result.ok) {
-    return {
-      error: result.error,
-    };
+  } catch (error: any) {
+    // Error handling inline
+    if (error.statusCode === 400 && error.details?.[0]) {
+      return { error: error.details[0].message };
+    }
+
+    if (error.statusCode === 404) {
+      return { error: 'Código inválido ou expirado' };
+    }
+
+    return { error: error.message || 'Erro ao verificar email' };
   }
 
-  // 5. Redirecionar para dashboard/painel
-  redirect("/panel");
+  // 3. Redirect to panel
+  redirect('/panel');
 }
 
 export async function resendCodeAction(email: string) {
-  const result = await resendVerificationService({ email });
+  try {
+    await publicFetch<ResendVerificationResponse>('/auth/resend-verification-code', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
 
-  if (!result.ok) {
     return {
-      error: result.error,
+      success: true,
+      message: 'Código reenviado com sucesso!',
+    };
+  } catch (error: any) {
+    return {
+      error: error.message || 'Erro ao reenviar código',
     };
   }
-
-  return {
-    success: true,
-    message: "Código reenviado com sucesso!",
-  };
 }

@@ -1,22 +1,14 @@
-"use client";
+'use client';
 
-import * as React from "react";
+import * as React from 'react';
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
   GalleryVerticalEnd,
-  Map,
-  PieChart,
+  LayoutDashboard,
   Settings2,
-  SquareTerminal,
-} from "lucide-react";
+} from 'lucide-react';
 
-import { NavMain } from "@/components/sidebar/nav-main";
-import { NavProjects } from "@/components/sidebar/nav-projects";
-import { NavUser } from "@/components/sidebar/nav-user";
+import { NavMain } from '@/components/sidebar/nav-main';
+import { NavUser } from '@/components/sidebar/nav-user';
 import {
   Sidebar,
   SidebarContent,
@@ -26,65 +18,34 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "@/components/ui/sidebar";
+} from '@/components/ui/sidebar';
 
-// Mock data - será substituído por dados reais
-const data = {
-  user: {
-    name: "Usuário",
-    email: "usuario@exemplo.com",
-    avatar: "",
+// Dados de navegação
+const navPainel = [
+  {
+    title: 'Visão Geral',
+    url: '/panel',
+    icon: LayoutDashboard,
+    isActive: true,
   },
-  navMain: [
-    {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
-      isActive: true,
-      items: [
-        { title: "Histórico", url: "#" },
-        { title: "Favoritos", url: "#" },
-        { title: "Configurações", url: "#" },
-      ],
-    },
-    {
-      title: "Modelos",
-      url: "#",
-      icon: Bot,
-      items: [
-        { title: "Genesis", url: "#" },
-        { title: "Explorer", url: "#" },
-        { title: "Quantum", url: "#" },
-      ],
-    },
-    {
-      title: "Documentação",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        { title: "Introdução", url: "#" },
-        { title: "Primeiros Passos", url: "#" },
-        { title: "Tutoriais", url: "#" },
-        { title: "Changelog", url: "#" },
-      ],
-    },
-    {
-      title: "Configurações",
-      url: "#",
-      icon: Settings2,
-      items: [
-        { title: "Geral", url: "#" },
-        { title: "Equipe", url: "#" },
-        { title: "Cobrança", url: "#" },
-        { title: "Limites", url: "#" },
-      ],
-    },
-  ],
-  projects: [
-    { name: "Design Engineering", url: "#", icon: Frame },
-    { name: "Sales & Marketing", url: "#", icon: PieChart },
-    { name: "Travel", url: "#", icon: Map },
-  ],
+];
+
+const navGerenciar = [
+  {
+    title: 'Configurações',
+    url: '/settings/general',
+    icon: Settings2,
+    isActive: false,
+    items: [
+      { title: 'Geral', url: '/settings/general' },
+    ],
+  },
+];
+
+const defaultUser = {
+  name: 'Usuário',
+  email: 'usuario@exemplo.com',
+  avatar: '',
 };
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
@@ -97,8 +58,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
   const userData = user
-    ? { ...user, avatar: user.avatar || "" }
-    : data.user;
+    ? { ...user, avatar: user.avatar || '' }
+    : defaultUser;
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -120,8 +81,8 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        <NavMain label="Painel" items={navPainel} />
+        <NavMain label="Gerenciar" items={navGerenciar} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={userData} />
