@@ -9,7 +9,8 @@ export enum EntityType {
   TENANT = 'TENANT',
   INVITE = 'INVITE',
   REFRESH_TOKEN = 'REFRESH_TOKEN',
-  PASSWORD_RESET_TOKEN = 'PASSWORD_RESET_TOKEN'
+  PASSWORD_RESET_TOKEN = 'PASSWORD_RESET_TOKEN',
+  USER_TENANT_MEMBERSHIP = 'USER_TENANT_MEMBERSHIP'
 }
 
 // Base schema definition para Single Table Design
@@ -92,6 +93,9 @@ export function getTableName(): string {
  * 7. Get Password Reset Token → PK: PASSWORD_RESET#{email}, SK: CODE#{code}
  * 8. Get Refresh Token → PK: REFRESH_TOKEN#{hash}, SK: METADATA
  * 9. List Refresh Tokens by User → GSI1: USER#{userId}#TOKENS
+ * 10. Get Membership by User+Tenant → PK: MEMBERSHIP#{userId}, SK: TENANT#{tenantId}
+ * 11. List Tenants by User → GSI1: USER#{userId}#TENANTS
+ * 12. List Members by Tenant → GSI2: TENANT#{tenantId}#MEMBERS
  */
 
 export class KeyBuilder {
@@ -186,6 +190,34 @@ export class KeyBuilder {
     return {
       GSI2PK: `TENANT#${tenantId}#INVITES`,
       GSI2SK: `INVITE#${inviteToken}`
+    }
+  }
+
+  // === USER TENANT MEMBERSHIPS ===
+
+  // PK: MEMBERSHIP#{userId}, SK: TENANT#{tenantId}
+  static buildMembershipKeys(userId: string, tenantId: string) {
+    return {
+      PK: `MEMBERSHIP#${userId}`,
+      SK: `TENANT#${tenantId}`
+    }
+  }
+
+  // GSI1: Buscar todos os tenants de um usuário
+  // GSI1PK: USER#{userId}#TENANTS, GSI1SK: TENANT#{tenantId}
+  static buildMembershipUserGSI(userId: string, tenantId: string) {
+    return {
+      GSI1PK: `USER#${userId}#TENANTS`,
+      GSI1SK: `TENANT#${tenantId}`
+    }
+  }
+
+  // GSI2: Buscar todos os membros de um tenant
+  // GSI2PK: TENANT#{tenantId}#MEMBERS, GSI2SK: USER#{userId}
+  static buildMembershipTenantGSI(tenantId: string, userId: string) {
+    return {
+      GSI2PK: `TENANT#${tenantId}#MEMBERS`,
+      GSI2SK: `USER#${userId}`
     }
   }
 }

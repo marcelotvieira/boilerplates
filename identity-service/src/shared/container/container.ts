@@ -8,18 +8,21 @@ import { TenantRepository } from '../../core/tenants/repositories/tenant.reposit
 import { InviteRepository } from '../../core/invites/repositories/invite.repository.interface.js'
 import { RefreshTokenRepository } from '../../core/auth/repositories/refresh-token.repository.interface.js'
 import { PasswordResetTokenRepository } from '../../core/auth/repositories/password-reset-token.repository.interface.js'
+import { UserTenantMembershipRepository } from '../../core/memberships/repositories/user-tenant-membership.repository.interface.js'
 
 import { DynamoDBUserRepository } from '../../infrastructure/repositories/dynamodb-user.repository.js'
 import { DynamoDBTenantRepository } from '../../infrastructure/repositories/dynamodb-tenant.repository.js'
 import { DynamoDBInviteRepository } from '../../infrastructure/repositories/dynamodb-invite.repository.js'
 import { DynamoDBRefreshTokenRepository } from '../../infrastructure/repositories/dynamodb-refresh-token.repository.js'
 import { DynamoDBPasswordResetTokenRepository } from '../../infrastructure/repositories/dynamodb-password-reset-token.repository.js'
+import { DynamoDBUserTenantMembershipRepository } from '../../infrastructure/repositories/dynamodb-user-tenant-membership.repository.js'
 
 // Services
 import { PasswordHasher } from '../../infrastructure/adapters/bcrypt-password-hasher.js'
 import { BcryptPasswordHasher } from '../../infrastructure/adapters/bcrypt-password-hasher.js'
 import { EventBusService } from '../events/event-bus.service.js'
 import { EventBridgeService } from '../events/event-bus.service.js'
+import { BillingServiceClient, HttpBillingServiceClient } from '../../infrastructure/adapters/billing-service.client.js'
 
 // Use Cases - Auth
 import { RegisterUserUseCase } from '../../core/auth/use-cases/register-user.use-case.js'
@@ -49,6 +52,9 @@ import { ListTenantInvitesUseCase } from '../../core/invites/use-cases/list-tena
 import { CancelInviteUseCase } from '../../core/invites/use-cases/cancel-invite.use-case.js'
 import { ResendInviteUseCase } from '../../core/invites/use-cases/resend-invite.use-case.js'
 
+// Use Cases - Memberships
+import { ListUserTenantsUseCase } from '../../core/memberships/use-cases/list-user-tenants.use-case.js'
+
 // Container setup
 const container = new Container()
 
@@ -58,10 +64,12 @@ container.bind<TenantRepository>(TYPES.TenantRepository).to(DynamoDBTenantReposi
 container.bind<InviteRepository>(TYPES.InviteRepository).to(DynamoDBInviteRepository)
 container.bind<RefreshTokenRepository>(TYPES.RefreshTokenRepository).to(DynamoDBRefreshTokenRepository)
 container.bind<PasswordResetTokenRepository>(TYPES.PasswordResetTokenRepository).to(DynamoDBPasswordResetTokenRepository)
+container.bind<UserTenantMembershipRepository>(TYPES.UserTenantMembershipRepository).to(DynamoDBUserTenantMembershipRepository)
 
 // Bind Services
 container.bind<PasswordHasher>(TYPES.PasswordHasher).to(BcryptPasswordHasher)
 container.bind<EventBusService>(TYPES.EventBusService).to(EventBridgeService)
+container.bind<BillingServiceClient>(TYPES.BillingServiceClient).to(HttpBillingServiceClient)
 
 // Bind Use Cases - Auth
 container.bind<RegisterUserUseCase>(TYPES.RegisterUserUseCase).to(RegisterUserUseCase)
@@ -90,5 +98,8 @@ container.bind<AcceptInviteUseCase>(TYPES.AcceptInviteUseCase).to(AcceptInviteUs
 container.bind<ListTenantInvitesUseCase>(TYPES.ListTenantInvitesUseCase).to(ListTenantInvitesUseCase)
 container.bind<CancelInviteUseCase>(TYPES.CancelInviteUseCase).to(CancelInviteUseCase)
 container.bind<ResendInviteUseCase>(TYPES.ResendInviteUseCase).to(ResendInviteUseCase)
+
+// Bind Use Cases - Memberships
+container.bind<ListUserTenantsUseCase>(TYPES.ListUserTenantsUseCase).to(ListUserTenantsUseCase)
 
 export { container }

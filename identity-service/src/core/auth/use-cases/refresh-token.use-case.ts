@@ -9,6 +9,8 @@ import { UnauthorizedException, ForbiddenException } from '../../../shared/excep
 import { Logger } from '../../../shared/utils/logger.js'
 import { JwtUtils, TokenPair } from '../../../shared/utils/jwt.utils.js'
 import { TenantStatus } from '../../tenants/enums/tenant-status.enum.js'
+import { BillingServiceClient } from '../../../infrastructure/adapters/billing-service.client.js'
+import type { ModuleEntitlements } from '../../../shared/types/entitlements.types.js'
 
 export interface RefreshTokenInput {
   refreshToken: string
@@ -26,12 +28,14 @@ export interface RefreshTokenOutput {
     id: string
     name: string
     status: string
+    planSlug: string
   }
   tokens: {
     accessToken: string
     refreshToken: string
     expiresIn: number
   }
+  entitlements?: ModuleEntitlements
 }
 
 @injectable()
@@ -41,7 +45,8 @@ export class RefreshTokenUseCase {
   constructor(
     @inject(TYPES.UserRepository) private userRepository: UserRepository,
     @inject(TYPES.TenantRepository) private tenantRepository: TenantRepository,
-    @inject(TYPES.RefreshTokenRepository) private refreshTokenRepository: RefreshTokenRepository
+    @inject(TYPES.RefreshTokenRepository) private refreshTokenRepository: RefreshTokenRepository,
+    @inject(TYPES.BillingServiceClient) private billingClient: BillingServiceClient
   ) {}
 
   async execute(input: RefreshTokenInput): Promise<RefreshTokenOutput> {
@@ -125,12 +130,33 @@ export class RefreshTokenUseCase {
     // Revoke old refresh token (token rotation)
     await this.refreshTokenRepository.revokeByTokenHash(tokenHash)
 
-    // Generate new token pair
+    // Resolve plan slug
+    const plan = tenant.planSlug?.toUpperCase() || 'FREE'
+
+    // Generate initial token pair (needed for billing-service auth)
+    const initialTokenPair: TokenPair = JwtUtils.generateTokenPair({
+      userId: user.id,
+      email: user.email,
+      tenantId: user.tenantId,
+      role: user.role,
+      plan
+    })
+
+    // Fetch fresh entitlements from billing-service
+    const planEntitlements = await this.billingClient.getPlanEntitlements(
+      plan,
+      initialTokenPair.accessToken
+    )
+    const entitlements = planEntitlements.entitlements
+
+    // Regenerate tokens with entitlements included
     const tokenPair: TokenPair = JwtUtils.generateTokenPair({
       userId: user.id,
       email: user.email,
       tenantId: user.tenantId,
-      role: user.role
+      role: user.role,
+      plan,
+      entitlements
     })
 
     // Save new refresh token
@@ -151,6 +177,6 @@ export class RefreshTokenUseCase {
       newTokenId: newRefreshToken.id
     })
 
-    return JwtUtils.createAuthResponse(user, tenant, tokenPair)
+    return JwtUtils.createAuthResponse(user, tenant, tokenPair, entitlements)
   }
 }

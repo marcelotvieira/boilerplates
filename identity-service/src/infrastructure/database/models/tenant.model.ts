@@ -1,5 +1,6 @@
 import dynamoose from 'dynamoose'
 import { TenantStatus } from '../../../core/tenants/enums/tenant-status.enum.js'
+import { PlanSlug } from '../../../core/tenants/enums/plan-slug.enum.js'
 import {
   createExtendedSchema,
   EntityType,
@@ -12,6 +13,7 @@ import {
 export interface TenantDocument extends BaseDocument {
   name: string
   ownerId: string
+  planSlug: PlanSlug
   status: TenantStatus
   deletedAt?: Date
 }
@@ -20,6 +22,11 @@ export interface TenantDocument extends BaseDocument {
 const tenantSchema = createExtendedSchema(EntityType.TENANT, {
   name: { type: String, required: true },
   ownerId: { type: String, required: true },
+  planSlug: {
+    type: String,
+    enum: Object.values(PlanSlug),
+    default: PlanSlug.FREE
+  },
   status: {
     type: String,
     enum: Object.values(TenantStatus),

@@ -11,18 +11,11 @@ export const updateUserProfileSchema = z.object({
     .min(2, 'Full name must be at least 2 characters')
     .max(100, 'Full name must not exceed 100 characters')
     .trim()
-    .optional(),
-
-  email: z.string()
-    .email('Invalid email format')
-    .max(255, 'Email must not exceed 255 characters')
-    .toLowerCase()
-    .trim()
     .optional()
 })
 .refine(
-  (data) => data.fullName !== undefined || data.email !== undefined,
-  { message: 'At least one field (fullName or email) must be provided' }
+  (data) => data.fullName !== undefined,
+  { message: 'Full name must be provided' }
 )
 
 export type UpdateUserProfileInput = z.infer<typeof updateUserProfileSchema>

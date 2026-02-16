@@ -65,7 +65,7 @@ custom:
     account: '000000000000'
     region: ${self:provider.region}
     maximumRetryAttempts: 0
-    mockEventBridgeServer: false
+    mockEventBridgeServer: true
 
   localstack:
     stages:

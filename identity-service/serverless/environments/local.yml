@@ -37,6 +37,9 @@ PASSWORD_RESET_RESEND_COOLDOWN_MINUTES: 2
 FRONTEND_URL: http://localhost:3000
 INVITE_ACCEPT_PATH: /auth/accept-invite
 
+# Inter-service communication
+BILLING_SERVICE_URL: http://localhost:3004
+
 # Flags
 IS_OFFLINE: "true"
 

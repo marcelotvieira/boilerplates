@@ -31,6 +31,9 @@ export const config = {
   INVITE_EXPIRATION_DAYS: parseInt(process.env.INVITE_EXPIRATION_DAYS || '7', 10),
   INVITE_LINK_BASE_URL: process.env.INVITE_LINK_BASE_URL || 'http://localhost:3000/signup',
 
+  // Inter-service communication
+  BILLING_SERVICE_URL: process.env.BILLING_SERVICE_URL || 'http://localhost:3004',
+
   // LocalStack
   IS_OFFLINE: process.env.IS_OFFLINE === 'true',
   IS_LOCAL: process.env.IS_LOCAL === 'true' || process.env.STAGE === 'local',

@@ -1,12 +1,15 @@
 import { sign, verify } from 'jsonwebtoken'
 import { createHash } from 'crypto'
 import { config } from '../../config/env.config.js'
+import type { ModuleEntitlements } from '../types/entitlements.types.js'
 
 export interface TokenPayload {
   userId: string
   tenantId: string
   email: string
   role: string
+  plan?: string
+  entitlements?: ModuleEntitlements
 }
 
 export interface TokenPair {
@@ -28,12 +31,14 @@ export interface AuthSuccessResponse {
     id: string
     name: string
     status: string
+    planSlug: string
   }
   tokens: {
     accessToken: string
     refreshToken: string
     expiresIn: number
   }
+  entitlements?: ModuleEntitlements
 }
 
 export class JwtUtils {
@@ -59,7 +64,9 @@ export class JwtUtils {
         userId: payload.userId,
         tenantId: payload.tenantId,
         email: payload.email,
-        role: payload.role
+        role: payload.role,
+        plan: payload.plan,
+        entitlements: payload.entitlements
       },
       this.getJwtSecret(),
       {
@@ -106,7 +113,9 @@ export class JwtUtils {
         userId: payload.userId,
         tenantId: payload.tenantId,
         email: payload.email,
-        role: payload.role
+        role: payload.role,
+        plan: payload.plan,
+        entitlements: payload.entitlements
       },
       this.getJwtSecret(),
       {
@@ -126,7 +135,9 @@ export class JwtUtils {
         userId: decoded.userId,
         tenantId: decoded.tenantId,
         email: decoded.email,
-        role: decoded.role
+        role: decoded.role,
+        plan: decoded.plan,
+        entitlements: decoded.entitlements
       }
     } catch (error) {
       throw new Error('Invalid or expired token')
@@ -198,8 +209,10 @@ export class JwtUtils {
       id: string
       name: string
       status: string
+      planSlug: string
     },
-    tokens: TokenPair
+    tokens: TokenPair,
+    entitlements?: ModuleEntitlements
   ): AuthSuccessResponse {
     return {
       user: {
@@ -212,13 +225,15 @@ export class JwtUtils {
       tenant: {
         id: tenant.id,
         name: tenant.name,
-        status: tenant.status
+        status: tenant.status,
+        planSlug: tenant.planSlug
       },
       tokens: {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresIn: 1800 // 30 minutos em segundos
-      }
+      },
+      entitlements
     }
   }
 }

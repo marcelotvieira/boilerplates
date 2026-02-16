@@ -46,6 +46,9 @@ export interface Config {
   // Frontend URLs
   FRONTEND_URL: string
   INVITE_ACCEPT_PATH: string
+
+  // Inter-service communication
+  BILLING_SERVICE_URL: string
 }
 
 function getEnvVar(key: string, defaultValue?: string): string {
@@ -109,5 +112,8 @@ export const config: Config = {
 
   // Frontend URLs
   FRONTEND_URL: getEnvVar('FRONTEND_URL'),
-  INVITE_ACCEPT_PATH: getEnvVar('INVITE_ACCEPT_PATH', '/auth/accept-invite')
+  INVITE_ACCEPT_PATH: getEnvVar('INVITE_ACCEPT_PATH', '/auth/accept-invite'),
+
+  // Inter-service communication
+  BILLING_SERVICE_URL: getEnvVar('BILLING_SERVICE_URL', 'http://localhost:3004'),
 }

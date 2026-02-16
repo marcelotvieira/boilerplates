@@ -4,16 +4,27 @@ import { TYPES } from '../../../shared/container/types.js'
 import { UserRepository } from '../../users/repositories/user.repository.interface.js'
 import { TenantRepository } from '../../tenants/repositories/tenant.repository.interface.js'
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository.interface.js'
+import { UserTenantMembershipRepository } from '../../memberships/repositories/user-tenant-membership.repository.interface.js'
 import { PasswordHasher } from '../../../infrastructure/adapters/bcrypt-password-hasher.js'
 import { RefreshToken } from '../entities/refresh-token.entity.js'
 import { UnauthorizedException, ForbiddenException } from '../../../shared/exceptions/app.exceptions.js'
 import { Logger } from '../../../shared/utils/logger.js'
 import { JwtUtils, TokenPair } from '../../../shared/utils/jwt.utils.js'
 import { TenantStatus } from '../../tenants/enums/tenant-status.enum.js'
+import { UserRole } from '../../users/enums/user-role.enum.js'
+import { BillingServiceClient } from '../../../infrastructure/adapters/billing-service.client.js'
 
 export interface LoginInput {
   email: string
   password: string
+}
+
+export interface TenantMembership {
+  id: string
+  name: string
+  role: UserRole
+  isDefault: boolean
+  planSlug: string
 }
 
 export interface LoginOutput {
@@ -28,7 +39,9 @@ export interface LoginOutput {
     id: string
     name: string
     status: string
+    planSlug: string
   }
+  tenants: TenantMembership[]
   tokens: {
     accessToken: string
     refreshToken: string
@@ -44,7 +57,9 @@ export class LoginUseCase {
     @inject(TYPES.UserRepository) private userRepository: UserRepository,
     @inject(TYPES.TenantRepository) private tenantRepository: TenantRepository,
     @inject(TYPES.RefreshTokenRepository) private refreshTokenRepository: RefreshTokenRepository,
-    @inject(TYPES.PasswordHasher) private passwordHasher: PasswordHasher
+    @inject(TYPES.UserTenantMembershipRepository) private membershipRepository: UserTenantMembershipRepository,
+    @inject(TYPES.PasswordHasher) private passwordHasher: PasswordHasher,
+    @inject(TYPES.BillingServiceClient) private billingClient: BillingServiceClient
   ) {}
 
   async execute(input: LoginInput): Promise<LoginOutput> {
@@ -99,12 +114,33 @@ export class LoginUseCase {
       throw new ForbiddenException('Your account has been deleted.')
     }
 
-    // Generate tokens
+    // Resolve plan slug
+    const plan = tenant.planSlug?.toUpperCase() || 'FREE'
+
+    // Generate initial token pair (needed for billing-service auth)
+    const initialTokenPair: TokenPair = JwtUtils.generateTokenPair({
+      userId: user.id,
+      email: user.email,
+      tenantId: user.tenantId,
+      role: user.role,
+      plan
+    })
+
+    // Fetch entitlements from billing-service
+    const planEntitlements = await this.billingClient.getPlanEntitlements(
+      plan,
+      initialTokenPair.accessToken
+    )
+    const entitlements = planEntitlements.entitlements
+
+    // Regenerate tokens with entitlements included
     const tokenPair: TokenPair = JwtUtils.generateTokenPair({
       userId: user.id,
       email: user.email,
       tenantId: user.tenantId,
-      role: user.role
+      role: user.role,
+      plan,
+      entitlements
     })
 
     // Save refresh token to database
@@ -119,12 +155,32 @@ export class LoginUseCase {
 
     await this.refreshTokenRepository.save(refreshToken)
 
+    // Fetch user's tenant memberships
+    const memberships = await this.membershipRepository.findByUserId(user.id)
+    const tenantsWithDetails = await Promise.all(
+      memberships.map(async (membership) => {
+        const memberTenant = await this.tenantRepository.findById(membership.tenantId)
+        return {
+          id: membership.tenantId,
+          name: memberTenant?.name || 'Unknown',
+          role: membership.role,
+          isDefault: membership.isDefault,
+          planSlug: memberTenant?.planSlug || 'FREE'
+        }
+      })
+    )
+
     this.logger.info('Login successful', {
       userId: user.id,
       email: user.email,
-      tenantId: user.tenantId
+      tenantId: user.tenantId,
+      tenantsCount: tenantsWithDetails.length
     })
 
-    return JwtUtils.createAuthResponse(user, tenant, tokenPair)
+    const authResponse = JwtUtils.createAuthResponse(user, tenant, tokenPair, entitlements)
+    return {
+      ...authResponse,
+      tenants: tenantsWithDetails
+    }
   }
 }

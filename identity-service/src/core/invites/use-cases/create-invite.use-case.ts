@@ -12,6 +12,7 @@ import { Logger } from '../../../shared/utils/logger.js'
 import { config } from '../../../shared/config/environment.js'
 import { randomUUID } from 'crypto'
 import { EVENT_SOURCE, EVENT_VERSION, InviteCreatedEvent } from '../../../shared/events/event-types.js'
+import { UserTenantMembershipRepository } from '../../memberships/repositories/user-tenant-membership.repository.interface.js'
 
 export interface CreateInviteInput {
   email: string
@@ -19,6 +20,7 @@ export interface CreateInviteInput {
   requestingUserId: string
   requestingUserTenantId: string
   requestingUserRole: string
+  resourceLimit?: number
 }
 
 export interface CreateInviteOutput {
@@ -38,6 +40,7 @@ export class CreateInviteUseCase {
     @inject(TYPES.InviteRepository) private inviteRepository: InviteRepository,
     @inject(TYPES.UserRepository) private userRepository: UserRepository,
     @inject(TYPES.TenantRepository) private tenantRepository: TenantRepository,
+    @inject(TYPES.UserTenantMembershipRepository) private membershipRepository: UserTenantMembershipRepository,
     @inject(TYPES.EventBusService) private eventBus: EventBusService
   ) {}
 
@@ -48,7 +51,7 @@ export class CreateInviteUseCase {
       requestingUserId: input.requestingUserId
     })
 
-    // Only OWNERs and ADMINs can create invites
+    // 1. Basic Auth/Role check (cheapest)
     if (input.requestingUserRole !== UserRole.OWNER && input.requestingUserRole !== UserRole.ADMIN) {
       this.logger.warn('Insufficient permissions to create invite', {
         requestingUserId: input.requestingUserId,
@@ -57,14 +60,26 @@ export class CreateInviteUseCase {
       throw new ForbiddenException('Only owners and administrators can invite new members')
     }
 
-    // Validate role
+    // 2. Resource limit check (limit resolved by checkPlanLimitations middleware)
+    if (input.resourceLimit !== undefined) {
+      const currentMemberCount = await this.membershipRepository.countByTenantId(input.requestingUserTenantId)
+      if (currentMemberCount >= input.resourceLimit) {
+        this.logger.warn('Member limit reached for tenant', {
+          tenantId: input.requestingUserTenantId,
+          currentCount: currentMemberCount,
+          limit: input.resourceLimit,
+        })
+        throw new ForbiddenException('Limite de membros atingido para o seu plano. Por favor, faça um upgrade para adicionar mais membros.')
+      }
+    }
+
+    // 3. Simple input validation (cheaper than more DB checks)
     const validRoles = [UserRole.ADMIN, UserRole.MEMBER]
     if (!validRoles.includes(input.role as UserRole)) {
       this.logger.warn('Invalid invite role', { role: input.role })
       throw new BadRequestException('Invalid role. Only ADMIN and MEMBER roles can be invited.')
     }
 
-    // Only OWNERs can invite ADMINs
     if (input.role === UserRole.ADMIN && input.requestingUserRole !== UserRole.OWNER) {
       this.logger.warn('Non-owner attempting to invite admin', {
         requestingUserId: input.requestingUserId,
@@ -73,17 +88,7 @@ export class CreateInviteUseCase {
       throw new ForbiddenException('Only account owners can invite administrators')
     }
 
-    // Check if email is already registered
-    const existingUser = await this.userRepository.findByEmail(input.email)
-    if (existingUser) {
-      this.logger.warn('Invite attempt for existing user', {
-        email: input.email,
-        existingUserId: existingUser.id
-      })
-      throw new ConflictException('A user with this email already exists')
-    }
-
-    // Check if there's already a pending invite for this email and tenant
+    // 4. Persistence checks (DB existence)
     const existingInvite = await this.inviteRepository.findByEmailAndTenant(
       input.email,
       input.requestingUserTenantId
@@ -97,7 +102,6 @@ export class CreateInviteUseCase {
       throw new ConflictException('An active invite for this email already exists')
     }
 
-    // Get tenant and inviter details
     const tenant = await this.tenantRepository.findById(input.requestingUserTenantId)
     if (!tenant) {
       this.logger.error('Tenant not found', new Error('Tenant not found'), {

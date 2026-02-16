@@ -38,47 +38,28 @@ export class UpdateUserProfileUseCase {
       throw new NotFoundException('User not found')
     }
 
-    // Check if email is being changed
+    // Email cannot be changed after registration
     if (input.email && input.email !== user.email) {
-      // Check if new email is already in use
-      const existingUser = await this.userRepository.findByEmail(input.email)
-      if (existingUser) {
-        this.logger.warn('Email already in use', {
-          userId: input.userId,
-          newEmail: input.email,
-          existingUserId: existingUser.id
-        })
-        throw new ConflictException('Email is already in use by another user')
-      }
+      this.logger.warn('Email change attempt rejected', {
+        userId: input.userId,
+        currentEmail: user.email,
+        attemptedEmail: input.email
+      })
+      throw new ConflictException('Email cannot be changed after registration')
     }
 
-    // Update user
+    // Update user (only fullName can be updated)
     const updatedUser = new User({
       ...user,
       fullName: input.fullName ?? user.fullName,
-      email: input.email ?? user.email,
-      // If email changed, mark as unverified and clear verification code
-      emailVerified: input.email && input.email !== user.email ? false : user.emailVerified,
-      emailVerificationCode: input.email && input.email !== user.email ? undefined : user.emailVerificationCode,
-      emailVerificationExpiresAt: input.email && input.email !== user.email ? undefined : user.emailVerificationExpiresAt,
       updatedAt: new Date()
     })
 
     await this.userRepository.save(updatedUser)
 
     this.logger.info('User profile updated', {
-      userId: user.id,
-      emailChanged: input.email && input.email !== user.email
+      userId: user.id
     })
-
-    // If email was changed, user will need to verify new email
-    if (input.email && input.email !== user.email) {
-      this.logger.info('Email changed - verification required', {
-        userId: user.id,
-        oldEmail: user.email,
-        newEmail: input.email
-      })
-    }
 
     return {
       id: updatedUser.id,

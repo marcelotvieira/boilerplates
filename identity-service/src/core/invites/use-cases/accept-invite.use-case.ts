@@ -3,9 +3,11 @@ import { TYPES } from '../../../shared/container/types.js'
 import { InviteRepository } from '../repositories/invite.repository.interface.js'
 import { UserRepository } from '../../users/repositories/user.repository.interface.js'
 import { TenantRepository } from '../../tenants/repositories/tenant.repository.interface.js'
+import { UserTenantMembershipRepository } from '../../memberships/repositories/user-tenant-membership.repository.interface.js'
 import { PasswordHasher } from '../../../infrastructure/adapters/bcrypt-password-hasher.js'
 import { EventBusService } from '../../../shared/events/event-bus.service.js'
 import { User } from '../../users/entities/user.entity.js'
+import { UserTenantMembership } from '../../memberships/entities/user-tenant-membership.entity.js'
 import { Invite } from '../entities/invite.entity.js'
 import { InviteStatus } from '../enums/invite-status.enum.js'
 import { NotFoundException, BadRequestException, ConflictException } from '../../../shared/exceptions/app.exceptions.js'
@@ -15,8 +17,8 @@ import { EVENT_SOURCE, EVENT_VERSION, UserRegisteredEvent } from '../../../share
 
 export interface AcceptInviteInput {
   token: string
-  fullName: string
-  password: string
+  fullName?: string   // Optional for existing users
+  password?: string   // Optional for existing users
 }
 
 export interface AcceptInviteOutput {
@@ -25,6 +27,7 @@ export interface AcceptInviteOutput {
   fullName: string
   tenantId: string
   role: string
+  isNewUser: boolean
 }
 
 @injectable()
@@ -35,6 +38,7 @@ export class AcceptInviteUseCase {
     @inject(TYPES.InviteRepository) private inviteRepository: InviteRepository,
     @inject(TYPES.UserRepository) private userRepository: UserRepository,
     @inject(TYPES.TenantRepository) private tenantRepository: TenantRepository,
+    @inject(TYPES.UserTenantMembershipRepository) private membershipRepository: UserTenantMembershipRepository,
     @inject(TYPES.PasswordHasher) private passwordHasher: PasswordHasher,
     @inject(TYPES.EventBusService) private eventBus: EventBusService
   ) {}
@@ -67,16 +71,6 @@ export class AcceptInviteUseCase {
       throw new BadRequestException(`This invite has already been ${invite.status.toLowerCase()}`)
     }
 
-    // Check if user with email already exists
-    const existingUser = await this.userRepository.findByEmail(invite.email)
-    if (existingUser) {
-      this.logger.warn('User already exists when accepting invite', {
-        email: invite.email,
-        existingUserId: existingUser.id
-      })
-      throw new ConflictException('A user with this email already exists')
-    }
-
     // Verify tenant still exists
     const tenant = await this.tenantRepository.findById(invite.tenantId)
     if (!tenant) {
@@ -85,6 +79,84 @@ export class AcceptInviteUseCase {
         inviteToken: input.token
       })
       throw new NotFoundException('Organization not found')
+    }
+
+    // Check if user with email already exists
+    const existingUser = await this.userRepository.findByEmail(invite.email)
+
+    if (existingUser) {
+      // User exists - add them to the new tenant via membership
+      return this.handleExistingUserInvite(existingUser, invite, tenant.name)
+    }
+
+    // New user - create user and membership
+    return this.handleNewUserInvite(input, invite, tenant.name)
+  }
+
+  private async handleExistingUserInvite(
+    existingUser: User,
+    invite: Invite,
+    tenantName: string
+  ): Promise<AcceptInviteOutput> {
+    // Check if user is already a member of this tenant
+    const existingMembership = await this.membershipRepository
+      .findByUserAndTenant(existingUser.id, invite.tenantId)
+
+    if (existingMembership && existingMembership.isActive()) {
+      this.logger.warn('User is already a member of this tenant', {
+        userId: existingUser.id,
+        tenantId: invite.tenantId
+      })
+      throw new ConflictException('You are already a member of this organization')
+    }
+
+    // Create membership for existing user
+    const membership = new UserTenantMembership({
+      userId: existingUser.id,
+      tenantId: invite.tenantId,
+      role: invite.role,
+      isDefault: false, // Not the default tenant
+      joinedAt: new Date()
+    })
+
+    await this.membershipRepository.save(membership)
+
+    // Update invite status
+    const acceptedInvite = new Invite({
+      ...invite,
+      status: InviteStatus.ACCEPTED,
+      acceptedAt: new Date(),
+      updatedAt: new Date()
+    })
+
+    await this.inviteRepository.save(acceptedInvite)
+
+    this.logger.info('Existing user joined new tenant via invite', {
+      userId: existingUser.id,
+      email: existingUser.email,
+      tenantId: invite.tenantId,
+      tenantName,
+      role: invite.role
+    })
+
+    return {
+      userId: existingUser.id,
+      email: existingUser.email,
+      fullName: existingUser.fullName,
+      tenantId: invite.tenantId,
+      role: invite.role,
+      isNewUser: false
+    }
+  }
+
+  private async handleNewUserInvite(
+    input: AcceptInviteInput,
+    invite: Invite,
+    tenantName: string
+  ): Promise<AcceptInviteOutput> {
+    // Validate required fields for new users
+    if (!input.fullName || !input.password) {
+      throw new BadRequestException('Full name and password are required for new users')
     }
 
     // Hash password
@@ -104,7 +176,20 @@ export class AcceptInviteUseCase {
       updatedAt: new Date()
     })
 
-    await this.userRepository.save(user)
+    // Create membership
+    const membership = new UserTenantMembership({
+      userId,
+      tenantId: invite.tenantId,
+      role: invite.role,
+      isDefault: true, // First tenant is the default
+      joinedAt: new Date()
+    })
+
+    // Save user and membership
+    await Promise.all([
+      this.userRepository.save(user),
+      this.membershipRepository.save(membership)
+    ])
 
     // Update invite status
     const acceptedInvite = new Invite({
@@ -116,10 +201,11 @@ export class AcceptInviteUseCase {
 
     await this.inviteRepository.save(acceptedInvite)
 
-    this.logger.info('Invite accepted successfully', {
+    this.logger.info('New user created via invite', {
       userId: user.id,
       email: user.email,
       tenantId: user.tenantId,
+      tenantName,
       inviteToken: input.token
     })
 
@@ -131,7 +217,8 @@ export class AcceptInviteUseCase {
       email: user.email,
       fullName: user.fullName,
       tenantId: user.tenantId,
-      role: user.role
+      role: user.role,
+      isNewUser: true
     }
   }
 

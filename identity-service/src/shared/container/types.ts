@@ -10,10 +10,12 @@ export const TYPES = {
   InviteRepository: Symbol.for('InviteRepository'),
   RefreshTokenRepository: Symbol.for('RefreshTokenRepository'),
   PasswordResetTokenRepository: Symbol.for('PasswordResetTokenRepository'),
+  UserTenantMembershipRepository: Symbol.for('UserTenantMembershipRepository'),
 
   // Services
   PasswordHasher: Symbol.for('PasswordHasher'),
   EventBusService: Symbol.for('EventBusService'),
+  BillingServiceClient: Symbol.for('BillingServiceClient'),
 
   // Use Cases - Auth
   RegisterUserUseCase: Symbol.for('RegisterUserUseCase'),
@@ -41,5 +43,8 @@ export const TYPES = {
   AcceptInviteUseCase: Symbol.for('AcceptInviteUseCase'),
   ListTenantInvitesUseCase: Symbol.for('ListTenantInvitesUseCase'),
   CancelInviteUseCase: Symbol.for('CancelInviteUseCase'),
-  ResendInviteUseCase: Symbol.for('ResendInviteUseCase')
+  ResendInviteUseCase: Symbol.for('ResendInviteUseCase'),
+
+  // Use Cases - Memberships
+  ListUserTenantsUseCase: Symbol.for('ListUserTenantsUseCase')
 }

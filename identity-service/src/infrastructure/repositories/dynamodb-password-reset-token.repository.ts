@@ -107,9 +107,9 @@ export class DynamoDBPasswordResetTokenRepository implements PasswordResetTokenR
     try {
       const keys = KeyBuilder.buildPasswordResetTokenKeys(email, code)
 
+      // Note: updatedAt is automatically managed by Dynamoose (timestamps: true in base schema)
       await PasswordResetTokenModel.update(keys, {
-        used: true,
-        updatedAt: new Date()
+        used: true
       })
 
       this.logger.info('Password reset token marked as used', { email })

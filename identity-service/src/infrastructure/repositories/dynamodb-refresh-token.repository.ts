@@ -110,8 +110,7 @@ export class DynamoDBRefreshTokenRepository implements RefreshTokenRepository {
 
       await RefreshTokenModel.update(keys, {
         revoked: true,
-        revokedAt: now,
-        updatedAt: now
+        revokedAt: now
       })
 
       this.logger.info('Refresh token revoked successfully')

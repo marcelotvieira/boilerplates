@@ -24,6 +24,7 @@ export class DynamoDBTenantRepository implements TenantRepository {
         id: tenant.id,
         name: tenant.name,
         ownerId: tenant.ownerId,
+        planSlug: tenant.planSlug,
         status: tenant.status,
         deletedAt: tenant.deletedAt
       }
@@ -35,6 +36,7 @@ export class DynamoDBTenantRepository implements TenantRepository {
         await TenantModel.update(keys, {
           name: tenant.name,
           ownerId: tenant.ownerId,
+          planSlug: tenant.planSlug,
           status: tenant.status,
           deletedAt: tenant.deletedAt
         })
@@ -118,6 +120,7 @@ export class DynamoDBTenantRepository implements TenantRepository {
       id: doc.id,
       name: doc.name,
       ownerId: doc.ownerId,
+      planSlug: doc.planSlug,
       status: doc.status,
       deletedAt: doc.deletedAt,
       createdAt: doc.createdAt,

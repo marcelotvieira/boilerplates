@@ -5,11 +5,13 @@ import { container } from '../../../shared/container/container.js'
 import { TYPES } from '../../../shared/container/types.js'
 import { CreateInviteUseCase } from '../../../core/invites/use-cases/create-invite.use-case.js'
 import { initializeDynamoDB } from '../../../infrastructure/database/dynamodb.config.js'
-import { authMiddleware, AuthenticatedEvent } from '../../../shared/middlewares/auth.middleware.js'
+import { authMiddleware } from '../../../shared/middlewares/auth.middleware.js'
+import { checkPlanLimitations, PlanLimitedEvent } from '../../../shared/middlewares/check-plan-limitations.middleware.js'
 import { zodValidator, ValidatedEvent } from '../../../shared/middlewares/zod-validator.middleware.js'
 import { createInviteSchema } from '../../schemas/invite.schemas.js'
 import { createSuccessResponse, createErrorResponse } from '../../../shared/utils/response.utils.js'
 import { Logger } from '../../../shared/utils/logger.js'
+import { BadRequestException } from '../../../shared/exceptions/app.exceptions.js'
 
 const logger = Logger.of('CreateInviteHandler')
 
@@ -17,7 +19,7 @@ const logger = Logger.of('CreateInviteHandler')
 initializeDynamoDB()
 
 // Combine AuthenticatedEvent with ValidatedEvent
-type CreateInviteEvent = AuthenticatedEvent & ValidatedEvent
+type CreateInviteEvent = PlanLimitedEvent & ValidatedEvent
 
 const createInviteHandler = async (
   event: CreateInviteEvent
@@ -32,13 +34,21 @@ const createInviteHandler = async (
       tenantId: event.user?.tenantId
     })
 
+    if (event.validatedBody?.email === event.user?.email) {
+      return createErrorResponse(
+        new BadRequestException('You cannot invite yourself'),
+        path
+      )
+    }
+
     const useCase = container.get<CreateInviteUseCase>(TYPES.CreateInviteUseCase)
     const result = await useCase.execute({
       email: event.validatedBody!.email,
       role: event.validatedBody!.role,
       requestingUserId: event.user!.userId,
       requestingUserTenantId: event.user!.tenantId,
-      requestingUserRole: event.user!.role
+      requestingUserRole: event.user!.role,
+      resourceLimit: event.resourceLimit
     })
 
     logger.info('Invite created successfully', {
@@ -65,5 +75,6 @@ const createInviteHandler = async (
 
 export const handler = middy(createInviteHandler)
   .use(authMiddleware())
+  .use(checkPlanLimitations('workspace', 'members'))
   .use(zodValidator({ body: createInviteSchema }))
   .use(httpErrorHandler())

@@ -118,6 +118,17 @@ getTenantMembers:
         method: GET
 
 # ======================
+# MEMBERSHIP FUNCTIONS (Authenticated)
+# ======================
+
+listUserTenants:
+  handler: src/api/handlers/memberships/list-user-tenants.handler
+  events:
+    - httpApi:
+        path: /users/me/tenants
+        method: GET
+
+# ======================
 # INVITE FUNCTIONS (Mixed: Public + Authenticated)
 # ======================
 

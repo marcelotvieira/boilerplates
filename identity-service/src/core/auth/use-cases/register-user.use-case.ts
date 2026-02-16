@@ -2,10 +2,12 @@ import { inject, injectable } from 'inversify'
 import { TYPES } from '../../../shared/container/types.js'
 import { UserRepository } from '../../users/repositories/user.repository.interface.js'
 import { TenantRepository } from '../../tenants/repositories/tenant.repository.interface.js'
+import { UserTenantMembershipRepository } from '../../memberships/repositories/user-tenant-membership.repository.interface.js'
 import { PasswordHasher } from '../../../infrastructure/adapters/bcrypt-password-hasher.js'
 import { EventBusService } from '../../../shared/events/event-bus.service.js'
 import { User } from '../../users/entities/user.entity.js'
 import { Tenant } from '../../tenants/entities/tenant.entity.js'
+import { UserTenantMembership } from '../../memberships/entities/user-tenant-membership.entity.js'
 import { UserRole } from '../../users/enums/user-role.enum.js'
 import { TenantStatus } from '../../tenants/enums/tenant-status.enum.js'
 import { ConflictException } from '../../../shared/exceptions/app.exceptions.js'
@@ -38,6 +40,7 @@ export class RegisterUserUseCase {
   constructor(
     @inject(TYPES.UserRepository) private userRepository: UserRepository,
     @inject(TYPES.TenantRepository) private tenantRepository: TenantRepository,
+    @inject(TYPES.UserTenantMembershipRepository) private membershipRepository: UserTenantMembershipRepository,
     @inject(TYPES.PasswordHasher) private passwordHasher: PasswordHasher,
     @inject(TYPES.EventBusService) private eventBus: EventBusService
   ) {}
@@ -93,13 +96,23 @@ export class RegisterUserUseCase {
       ownerId: userId
     })
 
+    // Create membership (owner of the tenant)
+    const membership = new UserTenantMembership({
+      userId,
+      tenantId,
+      role: UserRole.OWNER,
+      isDefault: true,
+      joinedAt: new Date()
+    })
+
     // Save to database
     await Promise.all([
       this.userRepository.save(user),
-      this.tenantRepository.save(updatedTenant)
+      this.tenantRepository.save(updatedTenant),
+      this.membershipRepository.save(membership)
     ])
 
-    this.logger.info('User and tenant created successfully', {
+    this.logger.info('User, tenant and membership created successfully', {
       userId: user.id,
       tenantId: tenant.id,
       email: user.email
